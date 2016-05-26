@@ -84,7 +84,6 @@ let
       services.cloud-init-custom.configFile = mkConfigFile "final-config"
         ''
           <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
-              <nixpkgs/nixos/modules/profiles/headless.nix>
               ${cloudModule}
         '';
       system.extraDependencies = [ cloudModule ];
@@ -95,7 +94,6 @@ let
                   (mkConfigFile "build-config"
                     ''
                       ${channel + "/nixos/nixos/modules/profiles/qemu-guest.nix"}
-                          ${channel + "/nixos/nixos/modules/profiles/headless.nix"}
                           ${./nixos/modules/services/system/cloud-init.nix}
                     '')
                   extraConfig ];
