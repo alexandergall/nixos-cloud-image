@@ -57,7 +57,6 @@ let
 
             fileSystems."/".device = "/dev/disk/by-label/nixos";
 
-            boot.kernelParams = [ "console=ttyS0,115200" "console=tty0" "vga=normal" "nofb" ];
             boot.loader.grub.device = "/dev/vda";
             boot.loader.grub.timeout = 0;
 
