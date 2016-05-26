@@ -69,12 +69,12 @@ let
 
             nixpkgs.config.packageOverrides = pkgs: rec {
               cloud-init = pkgs.cloud-init.overrideDerivation (oldAttrs: {
-                patchPhase = oldAttrs.patchPhase + ''
+                patchPhase = oldAttrs.patchPhase + '''
                   substituteInPlace cloudinit/sources/DataSourceAltCloud.py \
-                    --replace /usr/sbin/dmidecode ${pkgs.dmidecode}/bin/dmidecode \
-                    --replace /sbin/modprobe ${config.system.sbin.modprobe}/bin/modprobe \
-                    --replace /sbin/udevadm ${config.systemd.package}/sbin/udevadm
-                '';
+                    --replace /usr/sbin/dmidecode ''${pkgs.dmidecode}/bin/dmidecode \
+                    --replace /sbin/modprobe ''${config.system.sbin.modprobe}/bin/modprobe \
+                    --replace /sbin/udevadm ''${config.systemd.package}/sbin/udevadm
+                ''';
               });
             };
           }
@@ -84,8 +84,8 @@ let
       services.cloud-init-custom.configFile = mkConfigFile "final-config"
         ''
           <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
-          <nixpkgs/nixos/modules/profiles/headless.nix>
-          ${cloudModule}
+              <nixpkgs/nixos/modules/profiles/headless.nix>
+              ${cloudModule}
         '';
       system.extraDependencies = [ cloudModule ];
     };
@@ -95,8 +95,8 @@ let
                   (mkConfigFile "build-config"
                     ''
                       ${channel + "/nixos/nixos/modules/profiles/qemu-guest.nix"}
-                      ${channel + "/nixos/nixos/modules/profiles/headless.nix"}
-                      ${./nixos/modules/services/system/cloud-init.nix}
+                          ${channel + "/nixos/nixos/modules/profiles/headless.nix"}
+                          ${./nixos/modules/services/system/cloud-init.nix}
                     '')
                   extraConfig ];
     };
