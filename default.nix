@@ -38,11 +38,13 @@ let
       src = channelTarPath;
     };
 
-    cloudModule = runCommand "cloud-init-module"
-      {}
+    cpFileToStore = name: file:
+      runCommand name {}
       ''
-        cp ${builtins.toPath nixos/modules/services/system/cloud-init.nix} $out
+        cp ${file} $out
       '';
+    cloudModule = cpFileToStore "cloud-init-module" ./nixos/modules/services/system/cloud-init.nix;
+    cloudInitPatch = cpFileToStore "cloud-init-patch" ./cloud-init-0.7.6.patch;
     mkConfigFile = name: imports:
       builtins.toPath (pkgs.writeText "${name}"
         ''
@@ -57,22 +59,31 @@ let
 
             fileSystems."/".device = "/dev/disk/by-label/nixos";
 
+            boot.kernelParams = [ "console=ttyS0" ];
             boot.loader.grub.device = "/dev/vda";
             boot.loader.grub.timeout = 0;
 
-            # Allow root logins
             services.openssh.enable = true;
             services.openssh.permitRootLogin = "without-password";
+
+            users.extraUsers.nixos = {
+              isNormalUser = true;
+            };
+            security.sudo.extraConfig = '''
+              nixos ALL=(ALL:ALL) NOPASSWD: ALL
+            ''';
 
             services.cloud-init-custom.enable = true;
 
             nixpkgs.config.packageOverrides = pkgs: rec {
               cloud-init = pkgs.cloud-init.overrideDerivation (oldAttrs: {
+                patches = [ ${cloudInitPatch} ];
                 patchPhase = oldAttrs.patchPhase + '''
                   substituteInPlace cloudinit/sources/DataSourceAltCloud.py \
                     --replace /usr/sbin/dmidecode ''${pkgs.dmidecode}/bin/dmidecode \
                     --replace /sbin/modprobe ''${config.system.sbin.modprobe}/bin/modprobe \
                     --replace /sbin/udevadm ''${config.systemd.package}/sbin/udevadm
+                  patchPhase
                 ''';
               });
             };
@@ -85,7 +96,7 @@ let
           <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
               ${cloudModule}
         '';
-      system.extraDependencies = [ cloudModule ];
+      system.extraDependencies = [ cloudModule cloudInitPatch ];
     };
 
     eval = import (channel + "/nixos/nixos/lib/eval-config.nix") {
