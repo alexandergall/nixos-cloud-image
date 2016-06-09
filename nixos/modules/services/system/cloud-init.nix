@@ -117,13 +117,6 @@ in
         '';
       };
 
-      configFile = mkOption {
-        type = types.nullOr types.path;
-	default = null;
-	description = ''
-	  File to be installed as /etc/nixos/configuration.nix
-	'';
-      };
     };
 
   };

@@ -90,17 +90,27 @@ let
           }
         '');
 
+    cloudImageModule = { config, lib, pkgs, ... }:
+      {
+
+        system.build.cloudImage = import nixos/lib/make-disk-image.nix {
+          inherit pkgs lib config channel;
+	  configFile = mkConfigFile "final-config"
+                         ''
+                           <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
+                               ${cloudModule}
+                         '';
+          partitioned = true;
+          diskSize = 1 * 1024 + 128;
+        };
+      };
+
     extraConfig = {
-      services.cloud-init-custom.configFile = mkConfigFile "final-config"
-        ''
-          <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
-              ${cloudModule}
-        '';
-      system.extraDependencies = [ cloudModule cloudInitPatch ];
+      system.extraDependencies = [ cloudModule cloudInitPatch channel ];
     };
 
     eval = import (channel + "/nixos/nixos/lib/eval-config.nix") {
-      modules = [ ./nixos/modules/virtualisation/cloud-image.nix
+      modules = [ cloudImageModule
                   (mkConfigFile "build-config"
                     ''
                       ${channel + "/nixos/nixos/modules/profiles/qemu-guest.nix"}
