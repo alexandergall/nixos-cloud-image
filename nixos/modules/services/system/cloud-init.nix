@@ -13,11 +13,16 @@ let cfg = config.services.cloud-init-custom;
                   url = "http://pkgs.fedoraproject.org/cgit/rpms/cloud-utils.git/plain/0002-Support-new-sfdisk-version-2.26.patch";
                   sha256 = "15pcr90rnq41ffspip9wwnkar4gk2la6qdhl2sxbipb787nabcg3";
                 })
+		(pkgs.fetchurl {
+                  url = "http://pkgs.fedoraproject.org/cgit/rpms/cloud-utils.git/plain/0001-growpart-fix-use-of-partx-for-newer-util-linux-versi.patch";
+                  sha256 = "0f3y0vkycimi5191wqvrncwws2xjz4sz66mp6yxxbzagbflnqlbw";
+                })
               ];
     buildPhase = ''
       mkdir -p $out/bin
       cp bin/growpart $out/bin
       substituteInPlace $out/bin/growpart --replace awk ${pkgs.gawk}/bin/awk --replace sed ${pkgs.gnused}/bin/sed
+      substituteInPlace $out/bin/growpart --replace "BLKRRPART: " "" --replace "Success.* wrote.* new.* partition" "created a new partition" 
     '';
     dontInstall = true;
     dontPatchShebangs = true;

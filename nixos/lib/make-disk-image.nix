@@ -113,7 +113,6 @@ pkgs.vmTools.runInLinuxVM (
       ln -s ${config.system.build.binsh}/bin/sh /mnt/bin/sh
 
       # Set up the initial NixOS channel
-      set -x
       mkdir /mnt/tmp
       chmod 1777 /mnt/tmp
       echo "nixbld1:x:30001:30000:Nix build user 1:/var/empty:/run/current-system/sw/bin/nologin" >/mnt/etc/passwd
@@ -129,7 +128,6 @@ pkgs.vmTools.runInLinuxVM (
       # this will happen via /etc/profile when root logs in for the
       # first time.
       echo "${config.system.defaultChannel} nixos" >/mnt/root/.nix-channels
-      set +x
 
       # Install a configuration.nix.
       mkdir -p /mnt/etc/nixos

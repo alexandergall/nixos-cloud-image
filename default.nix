@@ -61,7 +61,7 @@ let
 
             boot.kernelParams = [ "console=ttyS0" ];
             boot.loader.grub.device = "/dev/vda";
-            boot.loader.grub.timeout = 0;
+            boot.loader.timeout = 0;
 
             services.openssh.enable = true;
             services.openssh.permitRootLogin = "without-password";
@@ -81,7 +81,7 @@ let
                 patchPhase = oldAttrs.patchPhase + '''
                   substituteInPlace cloudinit/sources/DataSourceAltCloud.py \
                     --replace /usr/sbin/dmidecode ''${pkgs.dmidecode}/bin/dmidecode \
-                    --replace /sbin/modprobe ''${config.system.sbin.modprobe}/bin/modprobe \
+                    --replace /sbin/modprobe ''${pkgs.kmod}/bin/modprobe \
                     --replace /sbin/udevadm ''${config.systemd.package}/sbin/udevadm
                   patchPhase
                 ''';
@@ -101,7 +101,7 @@ let
                                ${cloudModule}
                          '';
           partitioned = true;
-          diskSize = 1 * 1024 + 128;
+          diskSize = 1 * 1024;
         };
       };
 
