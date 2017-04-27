@@ -1,17 +1,17 @@
-diff -ruN cloud-init-0.7.6.orig/cloudinit/distros/__init__.py cloud-init-0.7.6/cloudinit/distros/__init__.py
---- cloud-init-0.7.6.orig/cloudinit/distros/__init__.py	2014-10-10 15:26:25.000000000 +0000
-+++ cloud-init-0.7.6/cloudinit/distros/__init__.py	2016-06-08 07:51:45.230357099 +0000
-@@ -43,6 +43,7 @@
+diff -ruN cloud-init-0.7.9.orig/cloudinit/distros/__init__.py cloud-init/cloudinit/distros/__init__.py
+--- cloud-init-0.7.9.orig/cloudinit/distros/__init__.py	2014-10-10 15:26:25.000000000 +0000
++++ cloud-init/cloudinit/distros/__init__.py	2016-06-08 07:51:45.230357099 +0000
+@@ -43,4 +43,5 @@
      'freebsd': ['freebsd'],
      'suse': ['sles'],
      'arch': ['arch'],
 +    'nixos': ['nixos'],
  }
- 
+
  LOG = logging.getLogger(__name__)
-diff -ruN cloud-init-0.7.6.orig/cloudinit/distros/nixos.py cloud-init-0.7.6/cloudinit/distros/nixos.py
---- cloud-init-0.7.6.orig/cloudinit/distros/nixos.py	1970-01-01 00:00:00.000000000 +0000
-+++ cloud-init-0.7.6/cloudinit/distros/nixos.py	2016-06-08 07:50:58.602616595 +0000
+diff -ruN cloud-init-0.7.9.orig/cloudinit/distros/nixos.py cloud-init/cloudinit/distros/nixos.py
+--- cloud-init-0.7.9.orig/cloudinit/distros/nixos.py	1970-01-01 00:00:00.000000000 +0000
++++ cloud-init/cloudinit/distros/nixos.py	2016-06-08 07:50:58.602616595 +0000
 @@ -0,0 +1,98 @@
 +# vi: ts=4 expandtab
 +#

@@ -3,100 +3,8 @@
 with lib;
 
 let cfg = config.services.cloud-init-custom;
-  growpart = pkgs.stdenv.mkDerivation {
-    name = "growpart";
-    src = pkgs.fetchurl {
-      url = "https://launchpad.net/cloud-utils/trunk/0.27/+download/cloud-utils-0.27.tar.gz";
-      sha256 = "16shlmg36lidp614km41y6qk3xccil02f5n3r4wf6d1zr5n4v8vd";
-    };
-    patches = [ (pkgs.fetchurl {
-                  url = "http://pkgs.fedoraproject.org/cgit/rpms/cloud-utils.git/plain/0002-Support-new-sfdisk-version-2.26.patch";
-                  sha256 = "15pcr90rnq41ffspip9wwnkar4gk2la6qdhl2sxbipb787nabcg3";
-                })
-		(pkgs.fetchurl {
-                  url = "http://pkgs.fedoraproject.org/cgit/rpms/cloud-utils.git/plain/0001-growpart-fix-use-of-partx-for-newer-util-linux-versi.patch";
-                  sha256 = "0f3y0vkycimi5191wqvrncwws2xjz4sz66mp6yxxbzagbflnqlbw";
-                })
-              ];
-    buildPhase = ''
-      mkdir -p $out/bin
-      cp bin/growpart $out/bin
-      substituteInPlace $out/bin/growpart --replace awk ${pkgs.gawk}/bin/awk --replace sed ${pkgs.gnused}/bin/sed
-      substituteInPlace $out/bin/growpart --replace "BLKRRPART: " "" --replace "Success.* wrote.* new.* partition" "created a new partition" 
-    '';
-    dontInstall = true;
-    dontPatchShebangs = true;
-  };
-  waitNetworkUp = pkgs.writeScriptBin "wait-network-up" ''
-    #!${pkgs.bash}/bin/bash
-    while true; do
-      echo "Checking for IPv4 default route"
-      netstat -rn | grep -q '^0\.0\.0\.0' && break
-      sleep 1
-    done
-    echo "Default route present, marking network as up"
-  '';
 
-    path = with pkgs; [ cloud-init nettools utillinux e2fsprogs shadow dmidecode openssh growpart ];
-    configFile = pkgs.writeText "cloud-init.cfg"
-      ''
-        system_info:
-          distro: nixos
-          default_user:
-            name: nixos
-
-        users:
-          - default
-
-        disable_root: true
-        preserve_hostname: false
-
-        growpart:
-          mode: auto
-          devices: ["/"]
-          resize_rootfs: True
-          resize_rootfs_tmp: /dev
-
-        syslog_fix_perms: root:root
-
-        cloud_init_modules:
-          - migrator
-          - seed_random
-          - bootcmd
-          - write-files
-          - growpart
-          - resizefs
-          - set_hostname
-          - update_hostname
-          - update_etc_hosts
-          - ca-certs
-          - rsyslog
-          - users-groups
-          - ssh
-
-        cloud_config_modules:
-          - emit_upstart
-          - disk_setup
-          - mounts
-          - ssh-import-id
-          - set-passwords
-          - timezone
-          - disable-ec2-metadata
-          - runcmd
-
-        cloud_final_modules:
-          - rightscale_userdata
-          - scripts-vendor
-          - scripts-per-once
-          - scripts-per-boot
-          - scripts-per-instance
-          - scripts-user
-          - ssh-authkey-fingerprints
-          - keys-to-console
-          - phone-home
-          - final-message
-          - power-state-change
-      '';
+    path = with pkgs; [ cloud-init nettools utillinux e2fsprogs shadow openssh iproute ];
 in
 {
   options = {
@@ -122,31 +30,78 @@ in
         '';
       };
 
+      config = mkOption {
+        type = types.str;
+        default = ''
+          system_info:
+            distro: nixos
+            default_user:
+              name: nixos
+
+          users:
+            - default
+
+          disable_root: true
+          preserve_hostname: true
+
+          growpart:
+            mode: auto
+            devices: ["/"]
+            resize_rootfs: True
+            resize_rootfs_tmp: /dev
+
+          syslog_fix_perms: root:root
+
+          cloud_init_modules:
+            - migrator
+            - seed_random
+            - bootcmd
+            - write-files
+            - growpart
+            - resizefs
+            - set_hostname
+            - update_hostname
+            - update_etc_hosts
+            - ca-certs
+            - rsyslog
+            - users-groups
+            - ssh
+
+          cloud_config_modules:
+            - emit_upstart
+            - disk_setup
+            - mounts
+            - ssh-import-id
+            - set-passwords
+            - timezone
+            - disable-ec2-metadata
+            - runcmd
+
+          cloud_final_modules:
+            - rightscale_userdata
+            - scripts-vendor
+            - scripts-per-once
+            - scripts-per-boot
+            - scripts-per-instance
+            - scripts-user
+            - ssh-authkey-fingerprints
+            - keys-to-console
+            - phone-home
+            - final-message
+            - power-state-change
+          '';
+        description = ''cloud-init configuration.'';
+      };
+
     };
 
   };
 
   config = mkIf cfg.enable {
 
-    environment.etc."cloud/cloud.cfg".source = configFile;
+    environment.etc."cloud/cloud.cfg".text = cfg.config;
 
-    systemd.services.wait-network-up =
-      { description = "Check network target";
-        wantedBy = [ "multi-user.target" ];
-        wants = [ "network.target" ];
-        after = [ "network.target" ];
-
-        path = path;
-        serviceConfig =
-          { Type = "oneshot";
-            ExecStart = "${waitNetworkUp}/bin/wait-network-up";
-            RemainAfterExit = "yes";
-            TimeoutSec = "0";
-            StandardOutput = "journal+console";
-          };
-      };
-
-  systemd.services.cloud-init-local =
+    systemd.services.cloud-init-local =
       { description = "Initial cloud-init job (pre-networking)";
         wantedBy = [ "multi-user.target" ];
         wants = [ "local-fs.target" ];
@@ -165,7 +120,7 @@ in
       { description = "Initial cloud-init job (metadata service crawler)";
         wantedBy = [ "multi-user.target" ];
         wants = [ "local-fs.target" "cloud-init-local.service" "sshd.service" "sshd-keygen.service" ];
-        after = [ "local-fs.target" "wait-network-up.service" "cloud-init-local.service" ];
+        after = [ "local-fs.target" "network.target" "cloud-init-local.service" ];
         before = [ "sshd.service" "sshd-keygen.service" ];
         requires = [ "network.target "];
         path = path;
@@ -181,8 +136,8 @@ in
     systemd.services.cloud-config =
       { description = "Apply the settings specified in cloud-config";
         wantedBy = [ "multi-user.target" ];
-        wants = [ "wait-network-up.service" ];
-        after = [ "wait-network-up.service" "syslog.target" "cloud-config.target" ];
+        wants = [ "network.target" ];
+        after = [ "network.target" "syslog.target" "cloud-config.target" ];
 
         path = path;
         serviceConfig =
@@ -197,8 +152,8 @@ in
     systemd.services.cloud-final =
       { description = "Execute cloud user/final scripts";
         wantedBy = [ "multi-user.target" ];
-        wants = [ "wait-network-up.service" ];
-        after = [ "wait-network-up.service" "syslog.target" "cloud-config.service" "rc-local.service" ];
+        wants = [ "network.target" ];
+        after = [ "network.target" "syslog.target" "cloud-config.service" "rc-local.service" ];
         requires = [ "cloud-config.target" ];
         path = path;
         serviceConfig =

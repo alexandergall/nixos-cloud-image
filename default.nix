@@ -44,7 +44,7 @@ let
         cp ${file} $out
       '';
     cloudModule = cpFileToStore "cloud-init-module" ./nixos/modules/services/system/cloud-init.nix;
-    cloudInitPatch = cpFileToStore "cloud-init-patch" ./cloud-init-0.7.6.patch;
+    cloudInitPatch = cpFileToStore "cloud-init-patch" ./cloud-init.patch;
     mkConfigFile = name: imports:
       builtins.toPath (pkgs.writeText "${name}"
         ''
@@ -76,16 +76,48 @@ let
             services.cloud-init-custom.enable = true;
 
             nixpkgs.config.packageOverrides = pkgs: rec {
-              cloud-init = pkgs.cloud-init.overrideDerivation (oldAttrs: {
-                patches = [ ${cloudInitPatch} ];
-                patchPhase = oldAttrs.patchPhase + '''
-                  substituteInPlace cloudinit/sources/DataSourceAltCloud.py \
-                    --replace /usr/sbin/dmidecode ''${pkgs.dmidecode}/bin/dmidecode \
-                    --replace /sbin/modprobe ''${pkgs.kmod}/bin/modprobe \
-                    --replace /sbin/udevadm ''${config.systemd.package}/sbin/udevadm
-                  patchPhase
+              cloud-utils = pkgs.cloud-utils.overrideAttrs (oldAttrs: rec {
+                buildPhase = '''
+                  mkdir -p $out/bin
+                  cp bin/growpart $out/bin/growpart
+                  wrapProgram $out/bin/growpart --prefix PATH : "''${with pkgs; stdenv.lib.makeBinPath [ gnused gawk utillinux ]}"
                 ''';
               });
+
+              cloud-init =  pkgs.cloud-init.overrideAttrs (oldAttrs: rec {
+                version = "0.7.9";
+                name = "cloud-init-''${version}";
+                namePrefix = "";
+                src = pkgs.fetchurl {
+                  url = "https://launchpad.net/cloud-init/trunk/''${version}/+download/cloud-init-''${version}.tar.gz";
+                  sha256 = "0wnl76pdcj754pl99wxx76hkir1s61x0bg0lh27sdgdxy45vivbn";
+                };
+
+                patches = [ ${cloudInitPatch} ];
+                prePatch = '''
+                  patchShebangs ./tools
+
+                  substituteInPlace setup.py \
+                    --replace /usr $out \
+                    --replace /etc $out/etc \
+                    --replace /lib/systemd $out/lib/systemd \
+                    --replace 'self.init_system = ""' 'self.init_system = "systemd"'
+
+                    substituteInPlace cloudinit/config/cc_growpart.py \
+                      --replace 'util.subp(["growpart"' 'util.subp(["''${cloud-utils}/bin/growpart"'
+                ''';
+
+                ## For some reason, the patch phase is not executet in an overridden package
+                ## without this
+                patchPhase = '''
+                  patchPhase
+                ''';
+
+                propagatedBuildInputs = with pkgs.pythonPackages; [ cheetah jinja2 prettytable
+                  oauthlib pyserial configobj pyyaml argparse requests jsonpatch ];
+
+              });
+
             };
           }
         '');
@@ -95,7 +127,7 @@ let
 
         system.build.cloudImage = import nixos/lib/make-disk-image.nix {
           inherit pkgs lib config channel;
-	  configFile = mkConfigFile "final-config"
+          configFile = mkConfigFile "final-config"
                          ''
                            <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
                                ${cloudModule}
