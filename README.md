@@ -16,6 +16,15 @@ essentially only adds a user `nixos` for initial access with full
 `sudo` privileges (`root` login is not permitted).  It also creates a
 `raw` image instead of `qcow2`.
 
+By default, the image uses the newest kernel available in the NixOS
+distribution defined by the package `linuxPackages_latest`.  This can
+be changed by setting the argument `kernelLatest` of the default Nix
+expression to `false`, i.e. with `nix-build --arg kernelLatest false`.
+In that case, the kernel is defined by the package `linuxPackages`.
+
+On a running instance, the kernel can be selected by setting the
+option `boot.kernelPackages` in `/etc/nixos/configuration.nix`.
+
 # Usage
 
 To create an image, run
@@ -38,3 +47,11 @@ $ cd ..
 $ NIX_PATH=`pwd` nix-build
 ```
 
+To use the default kernel of the distribution, execute
+```
+$ NIX_PATH=`pwd` nix-build --arg kernelLatest false
+```
+
+After a successful build, the current directory contains a symlink
+`result` which points to the location in the Nix store where the disk
+image is stored.
