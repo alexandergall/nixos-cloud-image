@@ -52,6 +52,12 @@ To use the default kernel of the distribution, execute
 $ NIX_PATH=`pwd` nix-build --arg kernelLatest false
 ```
 
+The size of the image is 1GiB by default.  A different size can be
+selected by setting the `diskSize` parameter (in units of MiB), e.g.
+```
+$ NIX_PATH=`pwd` nix-build --arg diskSize 2048
+```
+
 After a successful build, the current directory contains a symlink
 `result` which points to the location in the Nix store where the disk
 image is stored.

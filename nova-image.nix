@@ -1,4 +1,4 @@
-{ kernelLatest }:
+{ kernelLatest, diskSize }:
   { config, lib, pkgs, ... }:
 
   with lib;
@@ -63,9 +63,8 @@
   in
   {
     system.build.novaImage = import <nixpkgs/nixos/lib/make-disk-image.nix> {
-      inherit lib config;
+      inherit lib config diskSize;
       pkgs = import <nixpkgs> { inherit (pkgs) system; }; # ensure we use the regular qemu-kvm package
-      diskSize = 1024;
       format = "raw";
       configFile = pkgs.writeText "configuration.nix"
         (''
@@ -76,7 +75,17 @@
           {
             imports = [ <nixpkgs/nixos/modules/virtualisation/nova-config.nix> ];
 
-        '' +  (if kernelLatest == true then
+            systemd.services = {
+              ## nova-config.nix disables these via profiles/headless.nix
+              "serial-getty@ttyS0".enable = pkgs.lib.mkForce true;
+              "getty@tty1".enable = pkgs.lib.mkForce true;
+              ## For some reason, getty@.service is missing
+              ## a dependency on the getty.target.
+              "getty@tty1".wantedBy = [ "getty.target" ];
+            };
+
+            boot.kernelParams = [ "console=tty1" ];
+          '' +  (if kernelLatest == true then
                 "  boot.kernelPackages = pkgs.linuxPackages_latest;\n\n"
               else
                 "") +
@@ -98,6 +107,18 @@
     };
 
     imports = [ <nixpkgs/nixos/modules/virtualisation/nova-config.nix> ];
+
+    systemd.services = {
+      "serial-getty@ttyS0".enable = pkgs.lib.mkForce true;
+      "getty@tty1".enable = pkgs.lib.mkForce true;
+      "getty@tty1".wantedBy = [ "getty.target" ];
+    };
+
+    boot.kernelParams = [ "console=tty1" ];
+    boot.kernelPackages = if kernelLatest then
+      pkgs.linuxPackages_latest
+    else
+      pkgs.linuxPackages;
 
     users.extraUsers.nixos = {
       isNormalUser = true;
