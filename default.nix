@@ -85,6 +85,10 @@ let
           else
             "") +
     ''
+        services.openssh = {
+          authorizedKeysFiles = mkOverride 1 [ ".ssh/authorized_keys" ];
+        };
+
         users.extraUsers.nixos = {
           isNormalUser = true;
         };
