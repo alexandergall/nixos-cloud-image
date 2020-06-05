@@ -23,7 +23,7 @@ expression to `false`, i.e. with `nix-build --arg kernelLatest false`.
 In that case, the kernel is defined by the package `linuxPackages`.
 
 On a running instance, the kernel can be selected by setting the
-option `boot.kernelPackages` in `/etc/nixos/configuration.nix`.
+option `boot.kernelPackages` in `/etc/nixos/cloud-config.nix`.
 
 # Usage
 
