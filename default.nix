@@ -50,7 +50,7 @@ let
 
               disable_root: true
               preserve_hostname: false
-              datasource_list: [ 'Ec2' ]
+              datasource_list: [ 'OpenStack', 'Ec2' ]
 
               cloud_init_modules:
                 - migrator
