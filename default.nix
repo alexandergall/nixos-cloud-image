@@ -10,6 +10,18 @@ let
 
       with lib;
 
+      let
+        waitNetworkUp = pkgs.writeScriptBin "wait-network-up" '''
+          #!${pkgs.bash}/bin/bash
+          PATH=''${makeBinPath [ pkgs.nettools ]}:$PATH
+          while true; do
+            echo "Checking for IPv4 default route"
+            netstat -rn | grep -q '^0\.0\.0\.0' && break
+            sleep 1
+          done
+          echo "Default route present, marking network as up"
+        ''';
+      in
       {
         imports = [ <nixpkgs/nixos/modules/profiles/qemu-guest.nix> ];
 
@@ -96,6 +108,20 @@ let
             nixos ALL=(ALL:ALL) NOPASSWD: ALL
           ''';
 
+          systemd.services.wait-network-up =
+            { description = "Check network target";
+              requiredBy = [ "network-online.target" ];
+              wants = [ "network.target" ];
+              after = [ "network.target" ];
+
+              serviceConfig =
+                { Type = "oneshot";
+                  ExecStart = "''${waitNetworkUp}/bin/wait-network-up";
+                  RemainAfterExit = "yes";
+                  TimeoutSec = "0";
+                  StandardOutput = "journal+console";
+                };
+            };
         };
       }
      '');
