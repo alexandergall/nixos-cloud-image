@@ -12,7 +12,7 @@ let
 
       let
         waitNetworkUp = pkgs.writeScriptBin "wait-network-up" '''
-          #!${pkgs.bash}/bin/bash
+          #!''${pkgs.bash}/bin/bash
           PATH=''${makeBinPath [ pkgs.nettools ]}:$PATH
           while true; do
             echo "Checking for IPv4 default route"
