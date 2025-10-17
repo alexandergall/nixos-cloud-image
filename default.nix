@@ -1,9 +1,10 @@
-{ kernelLatest ? true, diskSize ? 2048 }:
+{ kernelLatest ? true, diskSize ? "auto" }:
 
 with import <nixpkgs> {};
 with lib;
 
 let
+  stateVersion = (import <nixpkgs/nixos/lib/eval-config.nix> { modules = []; }).config.system.nixos.release;
   cloudConfigFile = pkgs.writeText "cloud-config"
     (''
       { config, lib, pkgs, ... }:
@@ -26,6 +27,8 @@ let
         imports = [ <nixpkgs/nixos/modules/profiles/qemu-guest.nix> ];
 
         config = {
+          system.stateVersion = "${stateVersion}";
+
           fileSystems."/" = {
             device = "/dev/disk/by-label/nixos";
             fsType = "ext4";
@@ -39,13 +42,15 @@ let
      '' +  (if kernelLatest == true then
               "    boot.kernelPackages = pkgs.linuxPackages_latest;\n\n"
             else
-              "") +
+              "\n") +
      ''
           services.openssh = {
             enable = true;
-            permitRootLogin = "prohibit-password";
-            passwordAuthentication = mkDefault false;
             authorizedKeysFiles = mkOverride 1 [ ".ssh/authorized_keys" ];
+            settings = {
+              PermitRootLogin = "prohibit-password";
+              PasswordAuthentication = mkDefault false;
+            };
           };
 
           # Cloud-init configuration.
